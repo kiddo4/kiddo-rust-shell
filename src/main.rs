@@ -18,11 +18,12 @@ fn main() {
         stdin.read_line(&mut input).unwrap();
         input.pop(); 
 
-        match input.trim() {
-            "exit 0" => break,
-            _ => {
-                println!("{}: command not found", input.trim()); 
-            }
+        
+        let mut parts = input.split(' ');
+        match parts.next().unwrap() {
+            "exit" => std::process::exit(parts.next().and_then(|x| x.parse().ok()).unwrap_or(0)),
+            "echo" => println!("{}", parts.collect::<Vec<&str>>().join(" ")),
+            _ => println!("{input}: command not found"),
         }
     }
 }
