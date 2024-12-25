@@ -9,6 +9,8 @@ fn main() {
     // Wait for user input
     let stdin = io::stdin();
     let mut input = String::new();
+
+    let path_env = std::env::var("PATH").unwrap();
    
     loop {
         print!("$ ");
@@ -25,11 +27,33 @@ fn main() {
             "echo" => println!("{}", parts.collect::<Vec<&str>>().join(" ")),
             "type" => {
                 let command = parts.next().unwrap_or("");
-                match command {
-                    "echo" => println!("echo is a shell builtin"),
-                    "type" => println!("type is a shell builtin"),
-                    "exit" => println!("exit is a shell builtin"),
-                    _ => println!("{}: not found", command),
+                if command.is_empty() {
+                    println!("type: missing argument");
+                } else {
+                    
+                    match command {
+                        "echo" => println!("{} is a shell builtin", command),
+                        "type" => println!("type is a shell builtin"),
+                        "exit" => println!("exit is a shell builtin"),
+                        _ => {
+                            let path_env = std::env::var("PATH").unwrap();
+                            let paths = path_env.split(':');
+                            let mut found = false;
+
+                            for path in paths {
+                                let full_path = format!("{}/{}", path, command);
+                                if std::path::Path::new(&full_path).exists() {
+                                    println!("{} is {}", command, full_path);
+                                    found = true;
+                                    break;
+                                }
+                            }
+
+                            if !found {
+                                println!("{}: not found", command);
+                            }
+                        }
+                    }
                 }
             },
             _ => println!("{input}: command not found"),
