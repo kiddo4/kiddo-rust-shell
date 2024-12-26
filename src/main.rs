@@ -1,11 +1,10 @@
+use std::env;
 #[allow(unused_imports)]
 use std::io::{self, Write};
-use std::process::{self, Command};
-use std::env;
 use std::path::Path;
+use std::process::{self, Command};
 
-
-fn find_executable(cmd: &str) -> Option<String> {
+fn find_exe(cmd: &str) -> Option<String> {
     let path = env::var("PATH").unwrap_or_default();
 
     for dir in path.split(":") {
@@ -22,36 +21,34 @@ fn main() {
     loop {
         print!("$ ");
         io::stdout().flush().unwrap();
-    
-        // Wait for user inputc
+
+        // Wait for user input
         let stdin = io::stdin();
         let mut input = String::new();
         stdin.read_line(&mut input).unwrap();
 
         let input = input.trim();
         let parts: Vec<&str> = input.split_whitespace().collect();
-        
-        
+
         if parts.is_empty() {
             continue;
         }
 
         let command = parts[0];
 
-
         match command {
             "cd" => {
                 if parts.len() < 2 {
                     continue;
                 }
-                
+
                 if parts[1] == "~" {
                     match env::var("HOME") {
                         Ok(home_str) => {
                             if let Err(_) = env::set_current_dir(&home_str) {
                                 println!("cd: {}: No such file or directory", parts[1]);
                             }
-                        },
+                        }
                         Err(_) => {
                             println!("cd: HOME not set");
                         }
@@ -61,29 +58,29 @@ fn main() {
                         println!("cd: {}: No such file or directory", parts[1]);
                     }
                 }
-            },
+            }
             "pwd" => {
                 if let Ok(current_dir) = env::current_dir() {
                     println!("{}", current_dir.display());
                 }
-            },
+            }
             "type" => {
                 if parts.len() < 2 {
                     continue;
                 }
-    
+
                 let cmd_to_check = parts[1];
-    
+
                 match cmd_to_check {
-                    "echo" | "exit" | "type" | "pwd" => println!("{} is a shell builtin", cmd_to_check),
-                    _ => {
-                        match find_executable(cmd_to_check) {
-                            Some(path) => println!("{} is {}", cmd_to_check, path),
-                            None => println!("{}: not found", cmd_to_check),
-                        }
+                    "echo" | "exit" | "type" | "pwd" => {
+                        println!("{} is a shell builtin", cmd_to_check)
                     }
+                    _ => match find_exe(cmd_to_check) {
+                        Some(path) => println!("{} is {}", cmd_to_check, path),
+                        None => println!("{}: not found", cmd_to_check),
+                    },
                 }
-            }, 
+            }
             "exit" => {
                 if parts.len() > 1 {
                     if let Ok(code) = parts[1].parse::<i32>() {
@@ -91,20 +88,30 @@ fn main() {
                     }
                 }
                 process::exit(0)
-            },
+            }
             "echo" => {
                 if parts.len() > 1 {
-                    println!("{}", parts[1..].join(" "));
+                    let after_echo = input.trim_start_matches("echo").trim_start();
+                    let output = if (after_echo.starts_with('\'') && after_echo.ends_with('\''))
+                        || (after_echo.starts_with('"') && after_echo.ends_with('"'))
+                    {
+                        &after_echo[1..after_echo.len() - 1]
+                    } else {
+                        after_echo
+                    };
+
+                    println!(
+                        "{}",
+                        output.split_whitespace().collect::<Vec<_>>().join(" ")
+                    );
                     continue;
                 }
-            },
+            }
+
             _ => {
-                if let Some(cmd_path) = find_executable(command) {
-                    let output = Command::new(cmd_path)
-                        .args(&parts[1..])
-                        .output()
-                        .unwrap();
-                    
+                if let Some(cmd_path) = find_exe(command) {
+                    let output = Command::new(cmd_path).args(&parts[1..]).output().unwrap();
+
                     io::stdout().write_all(&output.stdout).unwrap();
                     io::stderr().write_all(&output.stderr).unwrap();
                 } else {
