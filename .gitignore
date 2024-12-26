@@ -8,3 +8,7 @@ target/
 
 # MSVC Windows builds of rustc generate these, which store debugging information
 *.pdb
+branch_structure.json
+temp_auto_push.bat
+temp_interactive_push.bat
+.gitignore
